@@ -1,55 +1,43 @@
-use fantoccini::{ClientBuilder, Locator};
+use thirtyfour::prelude::*;
+use undetected_chromedriver::Chrome;
+use tokio::time::{sleep, Duration};
+use tokio;
 
-// let's set up the sequence of steps we want the browser to take
 #[tokio::main]
-async fn main() -> Result<(), fantoccini::error::CmdError> {
-    let c = ClientBuilder::native().connect("http://localhost:4444").await.expect("failed to connect to WebDriver");
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    // first, go to Indeed
-    c.goto("https://www.indeed.com").await?;
-    let url = c.current_url().await?;
+    // scraping logic...
+
+    // with the specified options
+    let driver: WebDriver = Chrome::new().await;
+    
+    // visit the target page
+    driver.goto("https://www.indeed.com").await?;
+    let url = driver.current_url().await?;
     assert_eq!(url.as_ref(), "https://www.indeed.com/");
 
-    c.wait()
-        .for_element(Locator::Id(
-            "text-input-what",
-        ))
-        .await?;
-    c.wait()
-        .for_element(Locator::Id(
-            "text-input-where",
-        ))
-        .await?;
-
-    let search_form = c.form(Locator::Id("jobsearch")).await?;
-    search_form.set_by_name("q", "Software Engineer").await?;
-    search_form.set_by_name("l", "USA").await?;
-    search_form.submit().await?;
-
-    // TODO: Figure out if a wait for load is needed here
-
-    let mut job_listings = c.find_all(Locator::Css(".resultContent")).await?;
+    //driver.wait(200);
     
-    while job_listings.len() <= 0 {
-        job_listings = c.find_all(Locator::Css(".resultContent")).await?;
-    }
+    let elem_form = driver.find(By::Id("jobsearch")).await?;
+    let elem_job = elem_form.find(By::Id("text-input-what")).await?;
+    let elem_loc = elem_form.find(By::Id("text-input-where")).await?;
+    
+    sleep(Duration::from_millis(1000)).await;
 
-    for job in job_listings {
-        // Extract Job Title
-        let title_element = job.find(Locator::Css(r#"h2.jobTitle span[title]"#)).await?;
-        let title = title_element.text().await?;
+    elem_job.send_keys("Senior Software Engineer").await?;
+    sleep(Duration::from_millis(500)).await;
+    elem_loc.clear().await?;
+    elem_loc.send_keys(Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace + Key::Backspace).await?;
+    sleep(Duration::from_millis(300)).await;
+    elem_loc.send_keys("USA").await?;
+    sleep(Duration::from_millis(600)).await;
+    let elem_button = elem_form.find(By::Css("button[type='submit']")).await?;
+    elem_button.click().await?;
 
-        // Extract Company Name
-        let company_element = job.find(Locator::Css(r#"div.company_location [data-testid="company-name"]"#)).await?;
-        let company = company_element.text().await?;
+    sleep(Duration::from_millis(10000)).await;
 
+    // close the browser and release its resources
+    let _ = driver.quit().await?;
 
-        // Extract Location
-        let location_element = job.find(Locator::Css(r#"div.company_location [data-testid="text-location"]"#)).await?;
-        let location = location_element.text().await?;
-
-        println!("Title: {}, Company: {}, Location: {}", title, company, location);
-    }
-
-    c.close().await
+    Ok(())
 }
