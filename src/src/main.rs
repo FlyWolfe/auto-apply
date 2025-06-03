@@ -11,8 +11,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut caps = DesiredCapabilities::firefox();
     // set the User-Agent header
     caps.add_arg("--disable-notifications");
-let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-caps.add_arg(&format!("--user-agent={}", user_agent))?;
+    let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    caps.add_arg(&format!("--user-agent={}", user_agent))?;
 
     // with the specified options
     let driver = WebDriver::new("http://localhost:4444", caps).await?;
